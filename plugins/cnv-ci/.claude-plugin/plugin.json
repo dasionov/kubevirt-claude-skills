@@ -1,0 +1,8 @@
+{
+  "name": "cnv-ci",
+  "description": "CNV CI diagnosis and analysis tools",
+  "version": "1.0.0",
+  "author": {
+    "name": "Daniel Sionov"
+  }
+}

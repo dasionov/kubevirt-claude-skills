@@ -1,0 +1,13 @@
+{
+  "name": "kubevirt-claude-skills",
+  "owner": {
+    "name": "dsionov"
+  },
+  "plugins": [
+    {
+      "name": "cnv-ci",
+      "source": "./plugins/cnv-ci",
+      "description": "CNV/downstream CI diagnosis and analysis tools"
+    }
+  ]
+}

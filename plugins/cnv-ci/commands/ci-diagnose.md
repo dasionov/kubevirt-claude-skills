@@ -4,15 +4,15 @@ argument-hint: <jenkins-job-url>
 ---
 
 ## Name
-kubevirt:ci-diagnose
+cnv-ci:ci-diagnose
 
 ## Synopsis
 ```
-/kubevirt:ci-diagnose <jenkins-job-url>
+/cnv-ci:ci-diagnose <jenkins-job-url>
 ```
 
 ## Description
-The `kubevirt:ci-diagnose` command fetches test results and cluster-state artifacts from a downstream (CNV) Jenkins CI job and produces a root-cause diagnosis for each failed test.
+The `cnv-ci:ci-diagnose` command fetches test results and cluster-state artifacts from a downstream (CNV) Jenkins CI job, resolves the corresponding KubeVirt release version, and produces a root-cause diagnosis for each failed test.
 
 Given a Jenkins build URL, it:
 1. Fetches structured JUnit test results via the Jenkins API
@@ -62,6 +62,28 @@ Each failed test is classified into one of these categories:
    curl -s -o /dev/null -w "%{http_code}" -u "$JENKINS_USER:$JENKINS_TOKEN" "${BUILD_URL}/api/json"
    ```
    If not 200, report auth or connectivity failure and stop.
+
+### Phase 1.5: Resolve KubeVirt Version
+1. Extract the CNV version from the job name component of the URL using the regex `^([0-9]+\.[0-9]+)-` against the job name (e.g., `4.18` from `4.18-compute-ocs-gating`).
+
+2. Look up the CNV version in the known mapping table:
+
+   | CNV Version | KubeVirt Version |
+   |-------------|-----------------|
+   | 4.14        | 1.0             |
+   | 4.15        | 1.1             |
+   | 4.16        | 1.2             |
+   | 4.17        | 1.3             |
+   | 4.18        | 1.4             |
+   | 4.19        | 1.5             |
+
+3. If the CNV version is **not in the table**, compute via formula: `kubevirt_minor = cnv_minor - 14` (e.g., CNV 4.20 → KubeVirt 1.6). This handles future versions automatically.
+
+4. **Sanity check**: If the CNV version **is** in the table, also compute the formula result and compare. If they disagree, emit a warning — the table may be stale or the versioning convention may have changed.
+
+5. If the CNV version cannot be extracted from the URL (e.g., non-standard job name), log a warning and continue without version metadata — do not block the diagnosis.
+
+6. Store the resolved CNV version and KubeVirt version for use in Phase 4 (to generate GitHub links to the correct `release-X.Y` branch) and Phase 5 (report header).
 
 ### Phase 2: Fetch JUnit Test Results
 1. Fetch structured test results from the Jenkins test report API:
@@ -156,6 +178,8 @@ For each failed test from Phase 2:
 
 5. **Determine likely root cause**: Write a one-sentence diagnosis combining the failure message with the cluster evidence.
 
+6. **Generate source links**: If the KubeVirt version was resolved in Phase 1.5, use it to generate GitHub links pointing to the correct release branch. For example, if the resolved version is `1.4`, link stack trace file references to `https://github.com/kubevirt/kubevirt/blob/release-1.4/<file-path>#L<line>`.
+
 ### Phase 5: Generate Report
 1. Create the output directory:
    ```bash
@@ -168,6 +192,8 @@ For each failed test from Phase 2:
 
    **URL**: <jenkins-url>
    **Date**: <build-timestamp>
+   **CNV Version**: <cnv-version>
+   **KubeVirt Release**: <kubevirt-version>
 
    ## Summary
    - **Total**: X tests | **Passed**: Y | **Failed**: Z | **Skipped**: W
@@ -221,27 +247,27 @@ A structured diagnosis report containing:
 
 1. **Diagnose a specific build**:
    ```
-   /kubevirt:ci-diagnose https://jenkins.example.com/job/4.99-compute-ocs-gating/262/
+   /cnv-ci:ci-diagnose https://jenkins.example.com/job/4.99-compute-ocs-gating/262/
    ```
 
 2. **Diagnose a nested job path**:
    ```
-   /kubevirt:ci-diagnose https://jenkins.example.com/job/folder/job/4.99-compute-ocs-gating/262/
+   /cnv-ci:ci-diagnose https://jenkins.example.com/job/folder/job/4.99-compute-ocs-gating/262/
    ```
 
 3. **Diagnose without trailing slash**:
    ```
-   /kubevirt:ci-diagnose https://jenkins.example.com/job/4.99-compute-ocs-gating/262
+   /cnv-ci:ci-diagnose https://jenkins.example.com/job/4.99-compute-ocs-gating/262
    ```
 
 4. **Diagnose a different lane**:
    ```
-   /kubevirt:ci-diagnose https://jenkins.example.com/job/4.99-network-ocs-gating/155/
+   /cnv-ci:ci-diagnose https://jenkins.example.com/job/4.99-network-ocs-gating/155/
    ```
 
 5. **Diagnose latest build (if Jenkins supports "lastBuild" alias)**:
    ```
-   /kubevirt:ci-diagnose https://jenkins.example.com/job/4.99-compute-ocs-gating/lastFailedBuild/
+   /cnv-ci:ci-diagnose https://jenkins.example.com/job/4.99-compute-ocs-gating/lastFailedBuild/
    ```
 
 ## Arguments

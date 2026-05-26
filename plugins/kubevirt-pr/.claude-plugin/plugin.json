@@ -1,0 +1,8 @@
+{
+  "name": "kubevirt-pr",
+  "description": "KubeVirt PR creation using the project's official template",
+  "version": "1.0.0",
+  "author": {
+    "name": "Daniel Sionov"
+  }
+}

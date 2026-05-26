@@ -8,6 +8,11 @@
       "name": "cnv-ci",
       "source": "./plugins/cnv-ci",
       "description": "CNV/downstream CI diagnosis and analysis tools"
+    },
+    {
+      "name": "kubevirt-pr",
+      "source": "./plugins/kubevirt-pr",
+      "description": "KubeVirt PR creation using the project's official template"
     }
   ]
 }
